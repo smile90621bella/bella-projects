@@ -514,6 +514,7 @@
     <div class="flex max-h-[95svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2rem] bg-cream-50 shadow-2xl sm:rounded-[2rem]">
       <!-- 表單畫面 -->
       <form id="checkout-form" class="flex min-h-0 flex-1 flex-col" novalidate>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
         <div class="flex items-center justify-between border-b border-cream-200 px-6 py-5">
           <h2 id="checkout-title" class="font-serif text-xl font-black">確認訂單</h2>
           <button type="button" class="modal-close grid h-10 w-10 place-items-center rounded-full hover:bg-cream-100" aria-label="關閉"><i data-lucide="x" class="h-5 w-5"></i></button>
@@ -600,10 +601,10 @@
         </div>
 
         <div class="border-t border-cream-200 bg-white px-6 py-4">
-          <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-full bg-ember-500 py-4 font-bold text-white transition hover:bg-ember-600">
+          <button type="submit" id="submit-order" class="flex w-full items-center justify-center gap-2 rounded-full bg-ember-500 py-4 font-bold text-white transition hover:bg-ember-600 disabled:cursor-wait disabled:opacity-60">
             <i data-lucide="check-circle-2" class="h-5 w-5"></i>確認送出訂單
           </button>
-          <p class="mt-2 text-center text-xs text-wood-300">此為示範結帳流程，不會產生實際扣款。</p>
+          <p id="checkout-note" class="mt-2 text-center text-xs text-wood-300">本站不進行線上扣款，訂單送出後店家會立即收到。</p>
         </div>
       </form>
 
@@ -700,6 +701,9 @@
     ];
 
     const DELIVERY_FEE = 150, FREE_SHIP = 1500;
+
+    /* 訂單 API：貼上 Google Apps Script「網頁應用程式」網址（…/exec）。留空＝示範模式，不會送出訂單 */
+    const ORDER_API = '';
 
     /* =======================================================
        小工具
@@ -1044,24 +1048,65 @@
       if (mode === 'delivery') check(addr, !addr.value.trim()); else setError(addr, false);
       if (firstBad) { firstBad.focus(); return; }
 
-      // 建立訂單
-      const d = new Date();
-      const orderNo = 'JSJ' + d.getFullYear().toString().slice(2) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + Math.floor(1000 + Math.random() * 9000);
-      const sub = cartSubtotal(); const total = sub + feeFor(mode, sub);
-      const store = STORES.find((s) => s.id === $('#f-store').value);
-      const modeText = { dine: '內用', takeout: '外帶', delivery: '冷凍宅配' }[mode];
-      let detail = esc(name.value.trim()) + ' 您好，您的「' + modeText + '」訂單共 ' + money(total) + '。';
-      if (mode === 'delivery') detail += '我們將於 1–2 個工作天內出貨，寄送至：' + esc(addr.value.trim()) + '。';
-      else detail += '請於 ' + esc($('#f-time').value) + ' 到「金拾煎 ' + esc(store.name) + '」報上訂單編號取餐，現場付款。';
+      submitOrder(mode, name, phone, email, addr);
+    });
 
-      $('#order-no').textContent = orderNo;
+    if (!ORDER_API) $('#checkout-note').textContent = '目前為示範模式：訂單不會送出，也不會產生扣款。';
+
+    let clientId = null, sending = false;
+    const newId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+    async function submitOrder(mode, name, phone, email, addr) {
+      if (sending) return;
+      const btn = $('#submit-order'); const btnHtml = btn.innerHTML;
+      const store = STORES.find((s) => s.id === $('#f-store').value);
+      const payload = {
+        action: 'createOrder', clientId: clientId || (clientId = newId()),
+        website: form.elements.website.value,
+        mode, store: store.id, time: $('#f-time').value,
+        name: name.value.trim(), phone: phone.value.replace(/[\s-]/g, ''), email: email.value.trim(),
+        address: addr.value.trim(), note: $('#f-note').value.trim(),
+        items: cartLines().map((l) => ({ id: l.item.id, qty: l.qty }))
+      };
+
+      let res;
+      if (!ORDER_API) {
+        // 示範模式：在瀏覽器產生訂單編號，不送出
+        const d = new Date(); const sub = cartSubtotal();
+        res = { ok: true, total: sub + feeFor(mode, sub),
+          orderNo: 'JSJ' + d.getFullYear().toString().slice(2) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + Math.floor(1000 + Math.random() * 9000) };
+      } else {
+        sending = true; btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="h-5 w-5 animate-spin"></i>訂單送出中…'; refreshIcons();
+        const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 25000);
+        try {
+          // 用 text/plain 送出，避免瀏覽器先發 CORS 預檢（Apps Script 不支援）
+          const r = await fetch(ORDER_API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), signal: ctrl.signal });
+          res = await r.json();
+        } catch (err) {
+          res = { ok: false, error: navigator.onLine === false ? '目前沒有網路連線，請連線後再送出' : '連線逾時或伺服器忙碌，請稍後再試' };
+        } finally {
+          clearTimeout(timer); sending = false; btn.disabled = false; btn.innerHTML = btnHtml; refreshIcons();
+        }
+      }
+
+      if (!res || !res.ok) { toast((res && res.error) || '訂單送出失敗，請稍後再試', 'alert-circle'); return; }
+
+      const modeText = { dine: '內用', takeout: '外帶', delivery: '冷凍宅配' }[mode];
+      let detail = esc(payload.name) + ' 您好，您的「' + modeText + '」訂單共 ' + money(res.total) + '。';
+      if (mode === 'delivery') detail += '我們將於 1–2 個工作天內出貨，寄送至：' + esc(payload.address) + '。';
+      else detail += '請於 ' + esc(payload.time) + ' 到「金拾煎 ' + esc(store.name) + '」報上訂單編號取餐，現場付款。';
+      if (ORDER_API && payload.email) detail += '<br>訂單確認信已寄到 ' + esc(payload.email) + '。';
+
+      $('#order-no').textContent = res.orderNo;
       $('#success-detail').innerHTML = detail;
       form.classList.add('hidden'); form.classList.remove('flex');
       $('#checkout-success').classList.remove('hidden'); $('#checkout-success').classList.add('flex');
 
+      clientId = null;
       cart = {}; saveCart(); renderCart(false); form.reset();
       refreshIcons();
-    });
+    }
 
     /* =======================================================
        門市據點
