@@ -76,6 +76,28 @@
     /* 隱藏橫向捲軸（手機版分類 Tab） */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { scrollbar-width: none; }
+    /* 人來人往街景動畫 */
+    .street { position: relative; height: 240px; overflow: hidden;
+      background: linear-gradient(#fdfaf5 0%, #f8f1e6 62%, #b98d68 62%, #b98d68 64%, #ecdccb 64%, #efe3d1 100%); }
+    .street-lane { position: absolute; left: 0; width: 100%; height: 0; animation: walkLR linear infinite; }
+    .street-lane.rtl { animation-name: walkRL; }
+    .street-lane .walker { position: absolute; bottom: 0; left: 0; transform: translateX(-50%); }
+    .street-lane.rtl .walker svg { transform: scaleX(-1); }
+    @keyframes walkLR { from { transform: translateX(-8%); } to { transform: translateX(108%); } }
+    @keyframes walkRL { from { transform: translateX(108%); } to { transform: translateX(-8%); } }
+    .walker svg { display: block; overflow: visible; }
+    .walker .bob  { animation: bob .5s ease-in-out infinite alternate; }
+    .walker .legA { transform-origin: 0 34px; animation: swing .5s ease-in-out infinite alternate; }
+    .walker .legB { transform-origin: 0 34px; animation: swing .5s ease-in-out infinite alternate-reverse; }
+    .walker .armA { transform-origin: 0 16px; animation: swing .5s ease-in-out infinite alternate-reverse; }
+    .walker .armB { transform-origin: 0 16px; animation: swing .5s ease-in-out infinite alternate; }
+    @keyframes swing { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+    @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+    .steam { animation: steam 2.6s ease-out infinite; opacity: 0; }
+    .steam:nth-child(2) { animation-delay: .9s; } .steam:nth-child(3) { animation-delay: 1.8s; }
+    @keyframes steam { 0% { opacity: 0; transform: translateY(0) scale(.8); } 30% { opacity: .7; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
+    .lantern { transform-origin: top center; animation: sway 3s ease-in-out infinite alternate; }
+    @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   </style>
 </head>
@@ -178,6 +200,32 @@
       <a href="#story" class="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1 text-xs tracking-widest text-wood-500 sm:flex" aria-label="往下捲動">
         SCROLL<i data-lucide="chevron-down" class="h-5 w-5 animate-bounce"></i>
       </a>
+    </section>
+
+    <!-- =========================================================
+         2.5 人來人往街景動畫
+         ========================================================= -->
+    <section class="street" aria-label="門市前人來人往的街景動畫">
+      <!-- 店面 -->
+      <svg style="position:absolute;bottom:36%;left:50%;transform:translateX(-50%)" width="300" height="150" viewBox="0 0 300 150" aria-hidden="true">
+        <g fill="#fdfaf5">
+          <circle class="steam" cx="118" cy="22" r="7"/>
+          <circle class="steam" cx="150" cy="18" r="8"/>
+          <circle class="steam" cx="182" cy="22" r="7"/>
+        </g>
+        <rect x="20" y="40" width="260" height="110" rx="4" fill="#4e3220"/>
+        <rect x="10" y="34" width="280" height="14" rx="3" fill="#2a1b11"/>
+        <rect x="95" y="52" width="110" height="26" rx="4" fill="#e46f2a"/>
+        <text x="150" y="71" text-anchor="middle" font-family="Noto Serif TC, serif" font-weight="900" font-size="17" fill="#fff">金拾煎</text>
+        <path d="M20 84 h260 v12 h-260z" fill="#c95a1c"/>
+        <path d="M20 96 l14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 12 7" fill="#e46f2a"/>
+        <rect x="38" y="108" width="80" height="42" rx="2" fill="#f7a36b" opacity=".85"/>
+        <rect x="182" y="108" width="80" height="42" rx="2" fill="#f7a36b" opacity=".85"/>
+        <rect x="132" y="104" width="36" height="46" rx="2" fill="#2a1b11"/>
+        <g class="lantern" style="transform-box: fill-box"><line x1="32" y1="48" x2="32" y2="58" stroke="#2a1b11" stroke-width="2"/><ellipse cx="32" cy="68" rx="9" ry="11" fill="#e46f2a"/></g>
+        <g class="lantern" style="transform-box: fill-box; animation-delay: -1.5s"><line x1="268" y1="48" x2="268" y2="58" stroke="#2a1b11" stroke-width="2"/><ellipse cx="268" cy="68" rx="9" ry="11" fill="#e46f2a"/></g>
+      </svg>
+      <div id="streetCrowd" style="position:absolute;inset:0;z-index:3" aria-hidden="true"></div>
     </section>
 
     <!-- =========================================================
@@ -1124,5 +1172,47 @@
          background:#c95a1c;color:#fff;font-size:16px;font-weight:700;
          text-decoration:none;box-shadow:0 8px 24px #4a2d194d;"
 >📅 立即預約</a>
+<script>
+  /* 人來人往街景：隨機產生行人，前後兩排、左右雙向 */
+  (function () {
+    var crowd = document.getElementById('streetCrowd');
+    if (!crowd) return;
+    var tops = ['#e46f2a', '#7a5134', '#3b2618', '#f08a45', '#b98d68', '#c95a1c', '#4e3220'];
+    var pants = ['#2a1b11', '#3b2618', '#4e3220', '#7a5134'];
+    var skin = ['#f3d3b5', '#e8bf9a', '#d9a77f'];
+    var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+    var count = window.innerWidth < 640 ? 9 : 16;
+
+    function person(scale) {
+      var top = pick(tops), leg = pick(pants), face = pick(skin);
+      var bag = Math.random() < 0.35
+        ? '<rect x="7" y="24" width="9" height="10" rx="2" fill="#fdfaf5" stroke="#e46f2a" stroke-width="1.2"/>' : '';
+      var hat = Math.random() < 0.25 ? '<rect x="-7" y="-1" width="14" height="4" rx="2" fill="' + pick(pants) + '"/>' : '';
+      return '<svg width="' + 24 * scale + '" height="' + 62 * scale + '" viewBox="-12 -2 24 62">' +
+        '<g class="bob">' +
+          '<line class="legA" x1="0" y1="34" x2="0" y2="58" stroke="' + leg + '" stroke-width="4.5" stroke-linecap="round"/>' +
+          '<line class="legB" x1="0" y1="34" x2="0" y2="58" stroke="' + leg + '" stroke-width="4.5" stroke-linecap="round"/>' +
+          '<line class="armB" x1="0" y1="16" x2="0" y2="32" stroke="' + top + '" stroke-width="3.5" stroke-linecap="round" opacity=".75"/>' +
+          '<rect x="-6" y="12" width="12" height="24" rx="5" fill="' + top + '"/>' +
+          '<g class="armA"><line x1="0" y1="16" x2="0" y2="32" stroke="' + top + '" stroke-width="3.5" stroke-linecap="round"/>' + bag + '</g>' +
+          '<circle cx="0" cy="6" r="5.5" fill="' + face + '"/>' + hat +
+        '</g></svg>';
+    }
+
+    var html = '';
+    for (var i = 0; i < count; i++) {
+      var back = i % 2 === 0;                  // 後排較小、較慢、較淡
+      var scale = back ? 0.85 + Math.random() * 0.1 : 1.05 + Math.random() * 0.15;
+      var dur = (back ? 26 : 17) + Math.random() * 10;
+      var rtl = Math.random() < 0.5;
+      var start = Math.random() * 100;         // 減少動態偏好時的靜態位置
+      var bottom = back ? 34 + Math.random() * 2 : 8 + Math.random() * 10;
+      html += '<div class="street-lane' + (rtl ? ' rtl' : '') + '" style="bottom:' + bottom + '%;z-index:' + (back ? 1 : 2) +
+        ';opacity:' + (back ? .8 : 1) + ';animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + (Math.random() * dur).toFixed(1) +
+        's;transform:translateX(' + start.toFixed(0) + '%)"><div class="walker">' + person(scale) + '</div></div>';
+    }
+    crowd.innerHTML = html;
+  })();
+</script>
 </body>
 </html>
