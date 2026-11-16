@@ -1,0 +1,17 @@
+{
+  "name": "金拾煎 鍋貼專賣",
+  "short_name": "金拾煎",
+  "description": "金拾煎鍋貼專賣店：每日現包、現點現煎，線上點餐與冷凍禮盒宅配。",
+  "lang": "zh-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2a1b11",
+  "theme_color": "#e46f2a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
