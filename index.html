@@ -83,6 +83,11 @@
     .street.is-3d { height: 340px; background: #f8f1e6; }
     .street.is-3d #street2d { display: none; }
     @media (max-width: 639px) { .street.is-3d { height: 280px; } }
+    .street.paused * { animation-play-state: paused !important; }
+    .street-toggle { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px; border: 0; background: rgba(42,27,17,.72); color: #fdfaf5; font-size: 13px; cursor: pointer; }
+    .street-toggle:hover { background: rgba(42,27,17,.9); }
+    .street-toggle:focus-visible { outline: 2px solid #e46f2a; outline-offset: 2px; }
     .street { position: relative; height: 240px; overflow: hidden;
       background: linear-gradient(#fdfaf5 0%, #f8f1e6 62%, #b98d68 62%, #b98d68 64%, #ecdccb 64%, #efe3d1 100%); }
     .street-lane { position: absolute; left: 0; width: 100%; height: 0; animation: walkLR linear infinite; }
@@ -104,7 +109,7 @@
     @keyframes steam { 0% { opacity: 0; transform: translateY(0) scale(.8); } 30% { opacity: .7; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
     .lantern { transform-origin: top center; animation: sway 3s ease-in-out infinite alternate; }
     @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
-    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+    @media (prefers-reduced-motion: reduce) { *:not(.street, .street *) { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   </style>
 </head>
 <body class="bg-cream-50 text-wood-800 font-sans">
@@ -237,6 +242,7 @@
     </div>
       <!-- 3D 街景（Three.js） -->
       <div id="street3d" aria-hidden="true"></div>
+      <button type="button" id="streetToggle" class="street-toggle" aria-pressed="false">❚❚ 暫停動畫</button>
     </section>
 
     <!-- =========================================================
@@ -1223,6 +1229,15 @@
         's;transform:translateX(' + start.toFixed(0) + '%)"><div class="walker">' + person(scale) + '</div></div>';
     }
     crowd.innerHTML = html;
+
+    var btn = document.getElementById('streetToggle'), street = crowd.closest('.street');
+    btn.addEventListener('click', function () {
+      var paused = street.classList.toggle('paused');
+      btn.setAttribute('aria-pressed', paused);
+      btn.textContent = paused ? '▶ 播放動畫' : '❚❚ 暫停動畫';
+      var h = document.getElementById('street3d');
+      if (h && h.__setRunning) h.__setRunning(!paused);
+    });
   })();
 </script>
 <script>
@@ -1239,7 +1254,7 @@
 
     function build(THREE) {
       var section = host.parentElement;
-      var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var still = false; /* 一律播放；不想看動畫的訪客可按「暫停動畫」 */
       var C = { wood900: 0x2a1b11, wood800: 0x3b2618, wood700: 0x4e3220, wood500: 0x7a5134, wood300: 0xb98d68,
                 wood100: 0xecdccb, ember600: 0xc95a1c, ember500: 0xe46f2a, ember400: 0xf08a45, ember300: 0xf7a36b,
                 cream50: 0xfdfaf5, cream100: 0xf8f1e6, cream200: 0xefe3d1 };
@@ -1486,6 +1501,11 @@
       resize();
       if (still) { people.forEach(function (p) { step(p, 0); }); frame(performance.now()); }
       else requestAnimationFrame(frame);
+      host.__setRunning = function (on) {
+        var was = running; running = on;
+        if (on && !was && visible) { t0 = performance.now(); requestAnimationFrame(frame); }
+      };
+      if (section.classList.contains('paused')) host.__setRunning(false);
       host.classList.add('ready');
     }
   })();
