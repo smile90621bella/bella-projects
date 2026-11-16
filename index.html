@@ -76,7 +76,40 @@
     /* 隱藏橫向捲軸（手機版分類 Tab） */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { scrollbar-width: none; }
-    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+    /* 人來人往街景動畫 */
+    #street3d { position: absolute; inset: 0; z-index: 4; opacity: 0; transition: opacity .8s ease; }
+    #street3d.ready { opacity: 1; }
+    #street3d canvas { display: block; width: 100% !important; height: 100% !important; }
+    .street.is-3d { height: 340px; background: #f8f1e6; }
+    .street.is-3d #street2d { display: none; }
+    @media (max-width: 639px) { .street.is-3d { height: 280px; } }
+    .street.paused * { animation-play-state: paused !important; }
+    .street-toggle { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px; border: 0; background: rgba(42,27,17,.72); color: #fdfaf5; font-size: 13px; cursor: pointer; }
+    .street-toggle:hover { background: rgba(42,27,17,.9); }
+    .street-toggle:focus-visible { outline: 2px solid #e46f2a; outline-offset: 2px; }
+    .street { position: relative; height: 240px; overflow: hidden;
+      background: linear-gradient(#fdfaf5 0%, #f8f1e6 62%, #b98d68 62%, #b98d68 64%, #ecdccb 64%, #efe3d1 100%); }
+    .street-lane { position: absolute; left: 0; width: 100%; height: 0; animation: walkLR linear infinite; }
+    .street-lane.rtl { animation-name: walkRL; }
+    .street-lane .walker { position: absolute; bottom: 0; left: 0; transform: translateX(-50%); }
+    .street-lane.rtl .walker svg { transform: scaleX(-1); }
+    @keyframes walkLR { from { transform: translateX(-8%); } to { transform: translateX(108%); } }
+    @keyframes walkRL { from { transform: translateX(108%); } to { transform: translateX(-8%); } }
+    .walker svg { display: block; overflow: visible; }
+    .walker .bob  { animation: bob .5s ease-in-out infinite alternate; }
+    .walker .legA { transform-origin: 0 34px; animation: swing .5s ease-in-out infinite alternate; }
+    .walker .legB { transform-origin: 0 34px; animation: swing .5s ease-in-out infinite alternate-reverse; }
+    .walker .armA { transform-origin: 0 16px; animation: swing .5s ease-in-out infinite alternate-reverse; }
+    .walker .armB { transform-origin: 0 16px; animation: swing .5s ease-in-out infinite alternate; }
+    @keyframes swing { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+    @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+    .steam { animation: steam 2.6s ease-out infinite; opacity: 0; }
+    .steam:nth-child(2) { animation-delay: .9s; } .steam:nth-child(3) { animation-delay: 1.8s; }
+    @keyframes steam { 0% { opacity: 0; transform: translateY(0) scale(.8); } 30% { opacity: .7; } 100% { opacity: 0; transform: translateY(-26px) scale(1.4); } }
+    .lantern { transform-origin: top center; animation: sway 3s ease-in-out infinite alternate; }
+    @keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+    @media (prefers-reduced-motion: reduce) { *:not(.street, .street *) { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   </style>
 </head>
 <body class="bg-cream-50 text-wood-800 font-sans">
@@ -178,6 +211,38 @@
       <a href="#story" class="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1 text-xs tracking-widest text-wood-500 sm:flex" aria-label="往下捲動">
         SCROLL<i data-lucide="chevron-down" class="h-5 w-5 animate-bounce"></i>
       </a>
+    </section>
+
+    <!-- =========================================================
+         2.5 人來人往街景動畫
+         ========================================================= -->
+    <section class="street" aria-label="門市前人來人往的街景動畫">
+      <!-- 2D 備援：3D 無法載入時顯示 -->
+      <div id="street2d">
+      <!-- 店面 -->
+      <svg style="position:absolute;bottom:36%;left:50%;transform:translateX(-50%)" width="300" height="150" viewBox="0 0 300 150" aria-hidden="true">
+        <g fill="#fdfaf5">
+          <circle class="steam" cx="118" cy="22" r="7"/>
+          <circle class="steam" cx="150" cy="18" r="8"/>
+          <circle class="steam" cx="182" cy="22" r="7"/>
+        </g>
+        <rect x="20" y="40" width="260" height="110" rx="4" fill="#4e3220"/>
+        <rect x="10" y="34" width="280" height="14" rx="3" fill="#2a1b11"/>
+        <rect x="95" y="52" width="110" height="26" rx="4" fill="#e46f2a"/>
+        <text x="150" y="71" text-anchor="middle" font-family="Noto Serif TC, serif" font-weight="900" font-size="17" fill="#fff">金拾煎</text>
+        <path d="M20 84 h260 v12 h-260z" fill="#c95a1c"/>
+        <path d="M20 96 l14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 14 8 14-8 12 7" fill="#e46f2a"/>
+        <rect x="38" y="108" width="80" height="42" rx="2" fill="#f7a36b" opacity=".85"/>
+        <rect x="182" y="108" width="80" height="42" rx="2" fill="#f7a36b" opacity=".85"/>
+        <rect x="132" y="104" width="36" height="46" rx="2" fill="#2a1b11"/>
+        <g class="lantern" style="transform-box: fill-box"><line x1="32" y1="48" x2="32" y2="58" stroke="#2a1b11" stroke-width="2"/><ellipse cx="32" cy="68" rx="9" ry="11" fill="#e46f2a"/></g>
+        <g class="lantern" style="transform-box: fill-box; animation-delay: -1.5s"><line x1="268" y1="48" x2="268" y2="58" stroke="#2a1b11" stroke-width="2"/><ellipse cx="268" cy="68" rx="9" ry="11" fill="#e46f2a"/></g>
+      </svg>
+      <div id="streetCrowd" style="position:absolute;inset:0;z-index:3" aria-hidden="true"></div>
+    </div>
+      <!-- 3D 街景（Three.js） -->
+      <div id="street3d" aria-hidden="true"></div>
+      <button type="button" id="streetToggle" class="street-toggle" aria-pressed="false">❚❚ 暫停動畫</button>
     </section>
 
     <!-- =========================================================
@@ -1124,5 +1189,326 @@
          background:#c95a1c;color:#fff;font-size:16px;font-weight:700;
          text-decoration:none;box-shadow:0 8px 24px #4a2d194d;"
 >📅 立即預約</a>
+<script>
+  /* 人來人往街景：隨機產生行人，前後兩排、左右雙向 */
+  (function () {
+    var crowd = document.getElementById('streetCrowd');
+    if (!crowd) return;
+    var tops = ['#e46f2a', '#7a5134', '#3b2618', '#f08a45', '#b98d68', '#c95a1c', '#4e3220'];
+    var pants = ['#2a1b11', '#3b2618', '#4e3220', '#7a5134'];
+    var skin = ['#f3d3b5', '#e8bf9a', '#d9a77f'];
+    var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+    var count = window.innerWidth < 640 ? 9 : 16;
+
+    function person(scale) {
+      var top = pick(tops), leg = pick(pants), face = pick(skin);
+      var bag = Math.random() < 0.35
+        ? '<rect x="7" y="24" width="9" height="10" rx="2" fill="#fdfaf5" stroke="#e46f2a" stroke-width="1.2"/>' : '';
+      var hat = Math.random() < 0.25 ? '<rect x="-7" y="-1" width="14" height="4" rx="2" fill="' + pick(pants) + '"/>' : '';
+      return '<svg width="' + 24 * scale + '" height="' + 62 * scale + '" viewBox="-12 -2 24 62">' +
+        '<g class="bob">' +
+          '<line class="legA" x1="0" y1="34" x2="0" y2="58" stroke="' + leg + '" stroke-width="4.5" stroke-linecap="round"/>' +
+          '<line class="legB" x1="0" y1="34" x2="0" y2="58" stroke="' + leg + '" stroke-width="4.5" stroke-linecap="round"/>' +
+          '<line class="armB" x1="0" y1="16" x2="0" y2="32" stroke="' + top + '" stroke-width="3.5" stroke-linecap="round" opacity=".75"/>' +
+          '<rect x="-6" y="12" width="12" height="24" rx="5" fill="' + top + '"/>' +
+          '<g class="armA"><line x1="0" y1="16" x2="0" y2="32" stroke="' + top + '" stroke-width="3.5" stroke-linecap="round"/>' + bag + '</g>' +
+          '<circle cx="0" cy="6" r="5.5" fill="' + face + '"/>' + hat +
+        '</g></svg>';
+    }
+
+    var html = '';
+    for (var i = 0; i < count; i++) {
+      var back = i % 2 === 0;                  // 後排較小、較慢、較淡
+      var scale = back ? 0.85 + Math.random() * 0.1 : 1.05 + Math.random() * 0.15;
+      var dur = (back ? 26 : 17) + Math.random() * 10;
+      var rtl = Math.random() < 0.5;
+      var start = Math.random() * 100;         // 減少動態偏好時的靜態位置
+      var bottom = back ? 34 + Math.random() * 2 : 8 + Math.random() * 10;
+      html += '<div class="street-lane' + (rtl ? ' rtl' : '') + '" style="bottom:' + bottom + '%;z-index:' + (back ? 1 : 2) +
+        ';opacity:' + (back ? .8 : 1) + ';animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + (Math.random() * dur).toFixed(1) +
+        's;transform:translateX(' + start.toFixed(0) + '%)"><div class="walker">' + person(scale) + '</div></div>';
+    }
+    crowd.innerHTML = html;
+
+    var btn = document.getElementById('streetToggle'), street = crowd.closest('.street');
+    btn.addEventListener('click', function () {
+      var paused = street.classList.toggle('paused');
+      btn.setAttribute('aria-pressed', paused);
+      btn.textContent = paused ? '▶ 播放動畫' : '❚❚ 暫停動畫';
+      var h = document.getElementById('street3d');
+      if (h && h.__setRunning) h.__setRunning(!paused);
+    });
+  })();
+</script>
+<script>
+  /* 3D 街景：Three.js 載入成功才啟用，失敗時保留上方 2D 版本 */
+  (function () {
+    var host = document.getElementById('street3d');
+    if (!host) return;
+    var probe = document.createElement('canvas');
+    if (!(probe.getContext('webgl') || probe.getContext('experimental-webgl'))) return;
+    var tag = document.createElement('script');
+    tag.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    tag.onload = function () { try { build(window.THREE); } catch (e) { console.warn('3D street disabled:', e); } };
+    document.head.appendChild(tag);
+
+    function build(THREE) {
+      var section = host.parentElement;
+      var still = false; /* 一律播放；不想看動畫的訪客可按「暫停動畫」 */
+      var C = { wood900: 0x2a1b11, wood800: 0x3b2618, wood700: 0x4e3220, wood500: 0x7a5134, wood300: 0xb98d68,
+                wood100: 0xecdccb, ember600: 0xc95a1c, ember500: 0xe46f2a, ember400: 0xf08a45, ember300: 0xf7a36b,
+                cream50: 0xfdfaf5, cream100: 0xf8f1e6, cream200: 0xefe3d1 };
+      var rnd = function (a, b) { return a + Math.random() * (b - a); };
+      var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+      var mat = {};
+      var M = function (c, o) {
+        var k = c + JSON.stringify(o || {});
+        return mat[k] || (mat[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .85, metalness: 0 }, o || {})));
+      };
+      var box = function (w, h, d, c, o) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.castShadow = m.receiveShadow = true; return m; };
+
+      section.classList.add('is-3d');
+      var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      host.appendChild(renderer.domElement);
+
+      var scene = new THREE.Scene();
+      scene.background = new THREE.Color(C.cream100);
+      scene.fog = new THREE.Fog(C.cream100, 18, 34);
+      var camera = new THREE.PerspectiveCamera(32, 2, .1, 100);
+
+      /* 燈光：暖色天光＋斜陽 */
+      scene.add(new THREE.HemisphereLight(0xfff4ec, 0x7a5134, .75));
+      var sun = new THREE.DirectionalLight(0xffe3cf, .9);
+      sun.position.set(-6, 10, 8); sun.castShadow = true;
+      sun.shadow.mapSize.set(1024, 1024);
+      var sc = sun.shadow.camera; sc.left = -16; sc.right = 16; sc.top = 10; sc.bottom = -6; sc.near = 1; sc.far = 40;
+      sun.shadow.radius = 4; sun.shadow.bias = -.0008;
+      scene.add(sun);
+
+      /* 地面：人行道、路緣、馬路 */
+      var ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), M(C.cream200));
+      ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+      var curb = box(80, .12, .3, C.wood300); curb.position.set(0, .06, 2.2); scene.add(curb);
+      var road = new THREE.Mesh(new THREE.PlaneGeometry(80, 10), M(0x8a6a52));
+      road.rotation.x = -Math.PI / 2; road.position.set(0, .005, 7.4); road.receiveShadow = true; scene.add(road);
+      for (var dx = -36; dx < 36; dx += 3) {
+        var dash = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .12), M(C.cream100));
+        dash.rotation.x = -Math.PI / 2; dash.position.set(dx, .01, 5.2); scene.add(dash);
+      }
+      /* 人行道磚縫 */
+      for (var tx = -30; tx <= 30; tx += 1.5) {
+        var seam = new THREE.Mesh(new THREE.PlaneGeometry(.03, 6), M(C.wood100));
+        seam.rotation.x = -Math.PI / 2; seam.position.set(tx, .004, -1); scene.add(seam);
+      }
+
+      /* 文字貼圖 */
+      function textTexture(text, bg, fg, w, h, font) {
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var draw = function () {
+          var g = cv.getContext('2d');
+          g.fillStyle = bg; g.fillRect(0, 0, w, h);
+          g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.font = font; g.fillText(text, w / 2, h / 2 + h * .04);
+          tex.needsUpdate = true;
+        };
+        var tex = new THREE.CanvasTexture(cv);
+        tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
+        draw();
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+        return tex;
+      }
+
+      /* 店面（門口挖空，讓客人真的走進去） */
+      var shop = new THREE.Group(); scene.add(shop);
+      var FZ = -3.2, W = 8, H = 4.2, DOOR = 1.5, DH = 2.5;
+      var side = (W - DOOR) / 2;
+      var wl = box(side, H, .3, C.wood700); wl.position.set(-(DOOR / 2 + side / 2), H / 2, FZ); shop.add(wl);
+      var wr = wl.clone(); wr.position.x *= -1; shop.add(wr);
+      var wt = box(DOOR, H - DH, .3, C.wood700); wt.position.set(0, DH + (H - DH) / 2, FZ); shop.add(wt);
+      var back = box(W, H, .3, C.wood900); back.position.set(0, H / 2, FZ - 4); shop.add(back);
+      var sideL = box(.3, H, 4, C.wood800); sideL.position.set(-W / 2 + .15, H / 2, FZ - 2); shop.add(sideL);
+      var sideR = sideL.clone(); sideR.position.x *= -1; shop.add(sideR);
+      var roof = box(W + .8, .35, 5, C.wood900); roof.position.set(0, H + .17, FZ - 1.8); shop.add(roof);
+      /* 室內暖光 */
+      var floorIn = new THREE.Mesh(new THREE.PlaneGeometry(W - .6, 4), M(C.wood500));
+      floorIn.rotation.x = -Math.PI / 2; floorIn.position.set(0, .01, FZ - 2); shop.add(floorIn);
+      var inside = new THREE.PointLight(0xffb070, 1.4, 7, 2); inside.position.set(0, 2.2, FZ - 1.6); shop.add(inside);
+      var counter = box(4, 1.1, .8, C.ember600); counter.position.set(0, .55, FZ - 3.2); shop.add(counter);
+      /* 櫥窗 */
+      [-1, 1].forEach(function (s) {
+        var win = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 1.5), M(C.ember300, { emissive: C.ember300, emissiveIntensity: .45 }));
+        win.position.set(s * 2.55, 1.35, FZ + .16); shop.add(win);
+        var sill = box(2.3, .12, .3, C.wood900); sill.position.set(s * 2.55, .55, FZ + .2); shop.add(sill);
+      });
+      /* 招牌 */
+      var sign = new THREE.Mesh(new THREE.PlaneGeometry(3.4, .95),
+        new THREE.MeshStandardMaterial({ map: textTexture('金拾煎', '#e46f2a', '#ffffff', 512, 144, '900 96px "Noto Serif TC", serif'), roughness: .6,
+          emissive: 0x552000, emissiveIntensity: .25 }));
+      sign.position.set(0, 3.55, FZ + .17); shop.add(sign);
+      /* 條紋雨棚 */
+      var awnCv = document.createElement('canvas'); awnCv.width = 256; awnCv.height = 8;
+      var ag = awnCv.getContext('2d');
+      for (var i = 0; i < 16; i++) { ag.fillStyle = i % 2 ? '#fdfaf5' : '#e46f2a'; ag.fillRect(i * 16, 0, 16, 8); }
+      var awnTex = new THREE.CanvasTexture(awnCv); awnTex.encoding = THREE.sRGBEncoding;
+      var awn = new THREE.Mesh(new THREE.BoxGeometry(W + .4, .08, 1.3), new THREE.MeshStandardMaterial({ map: awnTex, roughness: .8 }));
+      awn.position.set(0, 2.85, FZ + .75); awn.rotation.x = .32; awn.castShadow = true; shop.add(awn);
+      /* 燈籠 */
+      var lanterns = [];
+      [-1, 1].forEach(function (s) {
+        var pivot = new THREE.Group(); pivot.position.set(s * 3.6, 2.75, FZ + 1.2); shop.add(pivot);
+        var string = box(.03, .35, .03, C.wood900); string.position.y = -.17; pivot.add(string);
+        var l = new THREE.Mesh(new THREE.SphereGeometry(.32, 20, 14), M(0xd8361f, { emissive: 0xc0281a, emissiveIntensity: .55, roughness: .5 }));
+        l.scale.y = 1.25; l.position.y = -.68; l.castShadow = true; pivot.add(l);
+        var cap = box(.3, .07, .3, C.wood900); cap.position.y = -.27; pivot.add(cap);
+        lanterns.push(pivot);
+      });
+      /* 屋頂煙囪與蒸氣 */
+      var chimney = box(.5, 1, .5, C.wood800); chimney.position.set(2.4, H + .7, FZ - 2.5); shop.add(chimney);
+      var steamMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: .6, roughness: 1, depthWrite: false });
+      var steam = [];
+      for (var k = 0; k < 6; k++) {
+        var puff = new THREE.Mesh(new THREE.SphereGeometry(.28, 12, 10), steamMat.clone());
+        puff.userData.t = k / 6; shop.add(puff); steam.push(puff);
+      }
+
+      /* 鄰近建築與行道樹，填滿寬螢幕 */
+      [[-10.5, 6, 3.6, 0xe6d6c3], [-16.5, 5, 3.0, 0xdcc7b0], [10.5, 6, 3.9, 0xe2d0bb], [16.8, 5.5, 3.2, 0xe8dac9],
+       [-22.5, 6, 3.8, 0xdac5ae], [22.8, 6, 3.4, 0xe0ccb6]].forEach(function (b) {
+        var bd = box(b[1], b[2], 4, b[3]); bd.position.set(b[0], b[2] / 2, FZ - 2); scene.add(bd);
+        for (var wx = -1; wx <= 1; wx += 2) {
+          var w = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .9), M(0xf3e6d3, { emissive: 0xf7a36b, emissiveIntensity: .12 }));
+          w.position.set(b[0] + wx * b[1] / 4, b[2] * .62, FZ + .01); scene.add(w);
+        }
+      });
+      [-6.2, 6.2, -13.6, 13.6].forEach(function (x) {
+        var trunk = box(.22, 1.6, .22, C.wood500); trunk.position.set(x, .8, 1.5); scene.add(trunk);
+        var crown = new THREE.Mesh(new THREE.IcosahedronGeometry(.95, 0), M(0x8c9a5b, { flatShading: true }));
+        crown.position.set(x, 2.1, 1.5); crown.castShadow = true; scene.add(crown);
+      });
+
+      /* 行人 */
+      var tops = [C.ember500, C.wood500, C.wood800, C.ember400, C.wood300, C.ember600, 0x6d7f8c, 0x9a5b4a];
+      var pantsC = [C.wood900, C.wood800, C.wood700, 0x3d4650];
+      var skins = [0xf3d3b5, 0xe8bf9a, 0xd9a77f, 0xb98563];
+      function makePerson() {
+        var g = new THREE.Group();
+        var body = new THREE.Group(); g.add(body);
+        var s = rnd(.88, 1.08); g.scale.setScalar(s);
+        var top = pick(tops), pants = pick(pantsC);
+        var torso = new THREE.Mesh(new THREE.CylinderGeometry(.24, .28, .78, 12), M(top)); torso.position.y = 1.32; torso.castShadow = true; body.add(torso);
+        var hips = new THREE.Mesh(new THREE.CylinderGeometry(.27, .26, .18, 12), M(pants)); hips.position.y = .9; hips.castShadow = true; body.add(hips);
+        var head = new THREE.Mesh(new THREE.SphereGeometry(.19, 16, 12), M(pick(skins))); head.position.y = 1.93; head.castShadow = true; body.add(head);
+        var hair = new THREE.Mesh(new THREE.SphereGeometry(.2, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), M(pick([C.wood900, C.wood800, 0x1d1d1d, C.wood500])));
+        hair.position.y = 1.95; hair.rotation.x = -.25; body.add(hair);
+        if (Math.random() < .25) {
+          var hat = new THREE.Mesh(new THREE.CylinderGeometry(.24, .24, .12, 16), M(pick(pantsC))); hat.position.y = 2.1; body.add(hat);
+        }
+        function limb(len, w, c, y, x) {
+          var p = new THREE.Group(); p.position.set(x, y, 0);
+          var m = box(w, len, w, c); m.position.y = -len / 2; p.add(m); return p;
+        }
+        var legL = limb(.82, .15, pants, .86, -.11), legR = limb(.82, .15, pants, .86, .11);
+        var armL = limb(.66, .12, top, 1.64, -.32), armR = limb(.66, .12, top, 1.64, .32);
+        g.add(legL, legR); body.add(armL, armR);
+        if (Math.random() < .4) { /* 外帶提袋 */
+          var bag = box(.26, .3, .14, C.cream50); bag.position.set(.06, -.72, 0); armR.add(bag);
+          var logo = box(.27, .08, .15, C.ember500); logo.position.set(.06, -.66, 0); armR.add(logo);
+        }
+        g.userData = { body: body, legL: legL, legR: legR, armL: armL, armR: armR, phase: Math.random() * 6 };
+        scene.add(g); return g;
+      }
+
+      var EDGE = window.innerWidth < 640 ? 9 : 18, DOOR_Z_IN = FZ - 2.6;
+      function newPath(p) {
+        var lane = rnd(-2.3, 1.4), dir = Math.random() < .5 ? 1 : -1, r = Math.random();
+        var start = -dir * (EDGE + rnd(0, EDGE / 4));
+        if (r < .3) {          /* 走進店裡 */
+          p.path = [[start, lane], [rnd(-.4, .4) - dir * 1.2, lane], [rnd(-.25, .25), FZ + .9], [rnd(-1.2, 1.2), DOOR_Z_IN]];
+        } else if (r < .5) {   /* 從店裡走出來 */
+          var x0 = rnd(-1.2, 1.2);
+          p.path = [[x0, DOOR_Z_IN], [rnd(-.25, .25), FZ + .9], [dir * 1.2, lane], [dir * (EDGE + 2), lane]];
+        } else {               /* 路過 */
+          p.path = [[start, lane], [dir * (EDGE + 2), lane]];
+        }
+        p.idx = 1; p.speed = rnd(1.05, 1.55);
+        p.mesh.position.set(p.path[0][0], 0, p.path[0][1]);
+      }
+      var count = window.innerWidth < 640 ? 10 : 18, people = [];
+      for (var n = 0; n < count; n++) {
+        var p = { mesh: makePerson() }; newPath(p);
+        /* 開場時讓路人隨機分布在畫面中 */
+        if (p.path.length === 2) p.mesh.position.x = rnd(-EDGE, EDGE);
+        people.push(p);
+      }
+
+      function step(p, dt) {
+        var m = p.mesh, tgt = p.path[p.idx];
+        var dx = tgt[0] - m.position.x, dz = tgt[1] - m.position.z, d = Math.hypot(dx, dz), mv = p.speed * dt;
+        if (d <= mv) {
+          m.position.x = tgt[0]; m.position.z = tgt[1];
+          if (++p.idx >= p.path.length) newPath(p);
+        } else {
+          m.position.x += dx / d * mv; m.position.z += dz / d * mv;
+          var want = Math.atan2(dx, dz), cur = m.rotation.y;
+          var diff = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+          m.rotation.y = cur + diff * Math.min(1, dt * 8);
+        }
+        var u = m.userData; u.phase += dt * p.speed * 6.2;
+        var sw = Math.sin(u.phase) * .55;
+        u.legL.rotation.x = sw; u.legR.rotation.x = -sw;
+        u.armL.rotation.x = -sw * .8; u.armR.rotation.x = sw * .5;
+        u.body.position.y = Math.abs(Math.cos(u.phase)) * .045;
+      }
+
+      /* 版面與鏡頭 */
+      var aspect = 2;
+      function resize() {
+        var w = host.clientWidth, h = host.clientHeight; if (!w || !h) return;
+        renderer.setSize(w, h, false);
+        aspect = w / h; camera.aspect = aspect;
+        camera.fov = aspect < 1.6 ? 42 : 32;
+        camera.updateProjectionMatrix();
+      }
+      var t0 = performance.now(), time = 0, running = !still, visible = true;
+      function frame(now) {
+        var dt = Math.min(.05, (now - t0) / 1000); t0 = now; time += dt;
+        people.forEach(function (p) { step(p, dt); });
+        lanterns.forEach(function (l, i) { l.rotation.z = Math.sin(time * 1.6 + i * 1.7) * .08; });
+        steam.forEach(function (s) {
+          var t = (s.userData.t + time * .22) % 1;
+          s.position.set(2.4 + Math.sin(t * 6 + s.userData.t * 9) * .2, H + 1.3 + t * 2.2, FZ - 2.5);
+          s.scale.setScalar(.6 + t * 1.4); s.material.opacity = .55 * (1 - t);
+        });
+        /* 鏡頭緩慢擺動，帶出立體感；窄螢幕拉遠一點 */
+        var dist = aspect < 1.6 ? 15 : 12.5;
+        camera.position.set(Math.sin(time * .12) * 2.2, 3.4, dist);
+        camera.lookAt(0, 1.9, -1.4);
+        renderer.render(scene, camera);
+        if (running && visible) requestAnimationFrame(frame);
+      }
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) {
+          var was = visible; visible = es[0].isIntersecting;
+          if (visible && !was && running) { t0 = performance.now(); requestAnimationFrame(frame); }
+        }).observe(section);
+      }
+      if ('ResizeObserver' in window) new ResizeObserver(function () { resize(); if (!running) frame(performance.now()); }).observe(host);
+      window.addEventListener('resize', resize);
+      resize();
+      if (still) { people.forEach(function (p) { step(p, 0); }); frame(performance.now()); }
+      else requestAnimationFrame(frame);
+      host.__setRunning = function (on) {
+        var was = running; running = on;
+        if (on && !was && visible) { t0 = performance.now(); requestAnimationFrame(frame); }
+      };
+      if (section.classList.contains('paused')) host.__setRunning(false);
+      host.classList.add('ready');
+    }
+  })();
+</script>
 </body>
 </html>
