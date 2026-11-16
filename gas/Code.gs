@@ -15,6 +15,7 @@
 /* =========================== 設定 =========================== */
 const CONFIG = {
   SHOP_NAME: '金拾煎',
+  SPREADSHEET_ID: '',        // 試算表 ID（網址 /d/ 與 /edit 中間那串）；從試算表「擴充功能 → Apps Script」建立的可留空
   NOTIFY_EMAIL: '',          // 收新訂單通知與日報的信箱；留空＝部署這個腳本的 Google 帳號
   TIMEZONE: 'Asia/Taipei',
   DELIVERY_FEE: 150,         // 冷凍宅配運費
@@ -52,7 +53,7 @@ const MENU_SEED = [
 /* =========================== 初始化 =========================== */
 /** 建立工作表、標題、格式、下拉選單，並安裝觸發器。可重複執行，不會刪資料。 */
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = ss_();
   ss.setSpreadsheetTimeZone(CONFIG.TIMEZONE);
 
   const orders = ensureSheet_(ss, SHEET.ORDERS, ORDER_HEADERS);
@@ -152,7 +153,7 @@ function createOrder_(b) {
   try {
     created = new Date();
     orderNo = nextOrderNo_(created);
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = ss_();
     const summary = priced.lines.map((l) => l.name + '×' + l.qty + l.unit).join('、');
     ss.getSheetByName(SHEET.ORDERS).appendRow([
       "'" + orderNo, created, '新訂單', MODE_TEXT[o.mode], o.mode === 'delivery' ? '—' : CONFIG.STORES[o.store],
@@ -198,7 +199,7 @@ function validate_(b) {
 
 /** 依「菜單」工作表計價：不信任網頁送來的價格 */
 function price_(o) {
-  const rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.MENU).getDataRange().getValues().slice(1);
+  const rows = ss_().getSheetByName(SHEET.MENU).getDataRange().getValues().slice(1);
   const menu = {};
   rows.forEach((r) => { if (r[0]) menu[String(r[0]).trim()] = { name: r[1], price: Number(r[3]), unit: r[4], min: Number(r[5]) || 1, on: String(r[6]).trim().toUpperCase() !== 'N' }; });
 
@@ -242,7 +243,7 @@ function safe_(v) { return /^[=+\-@]/.test(v) ? "'" + v : v; }
 function lookupStatus_(orderNo, phone) {
   orderNo = String(orderNo || '').trim(); phone = String(phone || '').replace(/[\s-]/g, '');
   if (!orderNo || !phone) return { ok: false, error: '請提供訂單編號與電話' };
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.ORDERS);
+  const sh = ss_().getSheetByName(SHEET.ORDERS);
   const hit = sh.getRange(1, COL['訂單編號'], sh.getLastRow(), 1).createTextFinder(orderNo).matchEntireCell(true).findNext();
   if (!hit || hit.getRow() === 1) return { ok: false, error: '查無此訂單' };
   const r = sh.getRange(hit.getRow(), 1, 1, ORDER_HEADERS.length).getValues()[0];
@@ -298,7 +299,7 @@ function notifyShop_(o) {
   const html = '<p><b>新訂單 ' + o.orderNo + '</b>（' + Utilities.formatDate(o.created, CONFIG.TIMEZONE, 'MM/dd HH:mm') + '）</p>' +
     '<p>' + pickupText_(o) + '<br>客人：' + esc_(o.name) + '　' + o.phone + (o.email ? '　' + esc_(o.email) : '') + '</p>' +
     (o.note ? '<p>備註：' + esc_(o.note) + '</p>' : '') + orderTable_(o) +
-    '<p><a href="' + SpreadsheetApp.getActiveSpreadsheet().getUrl() + '">開啟訂單試算表</a></p>';
+    '<p><a href="' + ss_().getUrl() + '">開啟訂單試算表</a></p>';
   MailApp.sendEmail({ to: shopEmail_(), subject: '🥟 新訂單 ' + o.orderNo + '｜' + MODE_TEXT[o.mode] + '｜' + money_(o.total), htmlBody: mailFrame_(html), name: CONFIG.SHOP_NAME + ' 訂單系統' });
 }
 
@@ -317,7 +318,7 @@ function mailFrame_(inner) {
 
 /* =========================== 營業日報 =========================== */
 function sendDailyReport() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = ss_();
   const today = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy/MM/dd');
   const isToday = (d) => d instanceof Date && Utilities.formatDate(d, CONFIG.TIMEZONE, 'yyyy/MM/dd') === today;
 
@@ -349,13 +350,21 @@ function sendDailyReport() {
 }
 
 /* =========================== 小工具 =========================== */
+/** 取得訂單試算表：優先用 SPREADSHEET_ID，否則用綁定的試算表 */
+function ss_() {
+  if (CONFIG.SPREADSHEET_ID) return SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID.trim());
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('找不到試算表：請在 CONFIG.SPREADSHEET_ID 填入試算表 ID，或從試算表的「擴充功能 → Apps Script」建立程式');
+  return ss;
+}
+
 function now_() { return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy/MM/dd HH:mm:ss'); }
 function money_(n) { return 'NT$' + Number(n).toLocaleString('en-US'); }
 function esc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 function logError_(where, err, data) {
   try {
-    SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET.LOG)
+    ss_().getSheetByName(SHEET.LOG)
       .appendRow([new Date(), where, String(err && err.stack || err), JSON.stringify(data || '').slice(0, 2000)]);
   } catch (e) { console.error(where, err); }
 }

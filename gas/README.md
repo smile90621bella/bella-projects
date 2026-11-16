@@ -46,6 +46,8 @@ Google Apps Script（doPost）
 1. 到 [Google 試算表](https://sheets.google.com) 新增一個空白試算表，取名例如「金拾煎訂單」。
 2. 上方選單 **擴充功能 → Apps Script**。
 3. 刪掉編輯器裡原本的內容，把本資料夾的 `Code.gs` **整份貼上**，按儲存（💾）。
+> 如果你是從 script.google.com 直接新增專案（沒有綁定試算表），請把試算表網址中 `/d/` 和 `/edit` 之間那一串，填到 `CONFIG` 的 `SPREADSHEET_ID`。
+
 4. （選用）把 `Code.gs` 最上面 `CONFIG` 裡的 `NOTIFY_EMAIL` 改成要收通知的信箱。留空的話，會寄到你自己的 Google 帳號。
 
 ### 2. 執行 setup（只要一次）
